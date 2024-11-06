@@ -2,7 +2,8 @@
   "name": "servicea",
   "version": "1.0.0",
   "description": "",
-  "main": "handler.js",
+  "main": "handler.mjs",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

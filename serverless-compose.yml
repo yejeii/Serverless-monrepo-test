@@ -1,0 +1,27 @@
+# 상대 경로를 통해 기존 Serverless Framework 프로젝트 참조
+services:
+  servicea:
+    path: servicea
+
+    # 특정 서비스에게 전달할 param 설정
+    params:
+      USER: "persii"
+      DESCRIPTION: "servicea 로 전달되는 하드코딩 설명"
+
+  serviceb:
+    path: serviceb
+
+  servicec:
+    path: servicec
+
+  serviced:
+    path: serviced
+
+# 스테이지별 환경 구성 - 모든 서비스에서 스테이지 매개변수 사용가능
+stages:
+  dev:
+    params:
+      STRIPE_API_KEY: "stripe-api-dev-key"
+  prod:
+    params:
+      STRIPE_API_KEY: "stripe-api-prod-key"

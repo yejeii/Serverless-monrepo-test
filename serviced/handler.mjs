@@ -1,11 +1,11 @@
-'use strict';
+"use strict";
 
-module.exports.hello = async event => {
+module.exports.hello = async (event) => {
   return {
     statusCode: 200,
     body: JSON.stringify(
       {
-        message: 'HI change. Made a change to test deployment',
+        message: "HI change. Made a change to test deployment",
         input: event,
       },
       null,

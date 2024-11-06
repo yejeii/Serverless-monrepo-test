@@ -1,56 +1,38 @@
-# Welcome to Serverless!
-#
-# This file is the main config file for your service.
-# It's very minimal at this point and uses default values.
-# You can always add more config options for more control.
-# We've included some commented out config examples here.
-# Just uncomment any of them to get that config option.
-#
-# For full config options, check the docs:
-#    docs.serverless.com
-#
-# Happy Coding!
-
-service: servicea
-# app and org for use with dashboard.serverless.com
-app: monorepotest
-org: garethmccumskey
-
-# You can pin your service to only deploy with a specific Serverless version
-# Check out our docs for more details
-# frameworkVersion: "=X.X.X"
+service: servicea # 배포되는 서비스명
+app: monorepotest # Serverless Dashboard 에서 관리되는 애플리케이션명
+org: persii
 
 provider:
+  name: aws # 배포할 클라우드 서비스 제공자 지정
+  deploymentBucket: # 배포 버킷을 지정(Serverless Framework는 AWS Lambda 함수 및 관련 리소스를 배포할 때, 해당 파일들을 S3 버킷에 저장함) -> 미리 생성
+    name: sls-deployment-bucket-persii
+  runtime: nodejs20.x # AWS Lambda 런타임
+  region: ap-southeast-1 # 배포되는 AWS 리소스 지역
+  # stage: dev    # default stage
 
-  deploymentBucket: 
-    name: sls-deployment-bucket-mccumskey
-  name: aws
-  runtime: nodejs20.x
-  region: us-east-1
-# you can overwrite defaults here
-#  stage: dev
-#  region: us-east-1
+  # Lambda 함수가 계정 내의 다른 AWS 인프라 리소스와 상호 작용하기 위한 권한 설정(IAM 역할을 통해 설정)
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:ListBucket"
+      Resource:
+        - "arn:aws:s3:::sls-deployment-bucket-persii" # 배포 버킷 이름을 직접 명시
+    - Effect: "Allow"
+      Action:
+        - "s3:PutObject"
+      Resource:
+        - "arn:aws:s3:::sls-deployment-bucket-persii/*" # 해당 버킷의 모든 객체
+    - Effect: "Allow"
+      Action:
+        - "s3:PutBucketNotification"
+      Resource:
+        - "arn:aws:s3:::event-trigger-bucket-persii"
 
-# you can add statements to the Lambda function's IAM Role here
-#  iamRoleStatements:
-#    - Effect: "Allow"
-#      Action:
-#        - "s3:ListBucket"
-#      Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ] ]  }
-#    - Effect: "Allow"
-#      Action:
-#        - "s3:PutObject"
-#      Resource:
-#        Fn::Join:
-#          - ""
-#          - - "arn:aws:s3:::"
-#            - "Ref" : "ServerlessDeploymentBucket"
-#            - "/*"
-
-# you can define service wide environment variables here
+  # Lambda 함수에서 사용할 환경 변수(serverless-compose.yml 에서 스테이지에 따라 참조)
   environment:
     STRIPE_API_KEY: ${param:STRIPE_API_KEY}
-#    variable1: value1
+    USER: ${param:USER}
+    DESCRIPTION: ${param:DESCRIPTION}
 
 # you can add packaging information here
 #package:
@@ -61,14 +43,20 @@ provider:
 #    - exclude-me.js
 #    - exclude-me-dir/**
 
+# Lambda 설정
 functions:
   hello:
     handler: handler.hello
-    memorySize: 128
-    events:
-      - http:
+    memorySize: 128 # Lambda의 memorySize
+    events: # lambda 와 연결할 이벤트(트리거) 설정
+      - http: # API 게이트웨이
           method: get
           path: dogs
+      - s3: # S3
+          bucket: event-trigger-bucket-persii
+          event: s3:ObjectCreated:*
+          existing: true # 새 버킷을 생성하지 않고, 사용자가 미리 생성한 S3 버킷을 대상으로 함(배포 시 존재하지 않으면 에러 발생)
+
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
 #    Check the event documentation for details
@@ -109,8 +97,19 @@ functions:
 #    environment:
 #      variable2: value2
 
-# you can add CloudFormation resource templates here
-#resources:
+# CloudFormation 탬플릿으로 AWS 에서 사용할 리소스 정의
+resources:
+  Resources:
+    EventTriggerBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: event-trigger-bucket-persii
+        VersioningConfiguration:
+          Status: Enabled
+  Outputs:
+    NewOutput:
+      Description: "Description for the output"
+      Value: "Some output value"
 #  Resources:
 #    testTable:
 #      Type: AWS::DynamoDB::Table
@@ -123,12 +122,4 @@ functions:
 #          - AttributeName: id
 #            KeyType: HASH
 #        BillingMode: PAY_PER_REQUEST
-#  Resources:
-#    NewResource:
-#      Type: AWS::S3::Bucket
-#      Properties:
-#        BucketName: my-new-bucket
-#  Outputs:
-#     NewOutput:
-#       Description: "Description for the output"
-#       Value: "Some output value"
+
